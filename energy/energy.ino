@@ -9,8 +9,12 @@
 #define serialTrace Serial
 // #define serialNotecard Serial1
 
+#ifndef PRODUCT_UID
+#define PRODUCT_UID ""
+#endif
+
 // This is the unique Product Identifier for your device.
-#define myProductID "com.blues.test"
+#define myProductID PRODUCT_UID
 Notecard notecard;
 
 // Control parameters
@@ -45,11 +49,13 @@ void setup()
 #endif
 
     // Set the product UID and set the sync mode to be "minimum"
-    J *req = notecard.newRequest("hub.set");
-    JAddStringToObject(req, "product", myProductID);
-    JAddStringToObject(req, "mode", "minimum");
-    notecard.sendRequest(req);
-
+    J *req;
+    if (myProductID[0]) {
+      req = notecard.newRequest("hub.set");
+      JAddStringToObject(req, "product", myProductID);
+      JAddStringToObject(req, "mode", "minimum");
+      notecard.sendRequest(req);
+    }
 	// Perform at least three sync cycles just to ensure that we've gotten past our
 	// initial connectivity and secure authentication, which takes more bandwidth and time
 	for (int i=5; i>0 && (lastSyncDurationSecs == 0 || lastSyncDurationSecs > 16); --i) {
