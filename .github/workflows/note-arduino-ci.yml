@@ -1,0 +1,33 @@
+name: Note Arduino CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  validate_examples: # job id
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        example-sketch:
+          - ./energy/energy.ino
+        fully-qualified-board-name:
+          - STMicroelectronics:stm32:BluesW:pnum=SWAN_R5
+          # - esp32:esp32:featheresp32
+          # - adafruit:samd:adafruit_feather_m4
+    steps:
+      - name: Checkout Code
+        id: checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Compile Examples
+        id: compile_examples
+        uses: ./.github/actions/compile-examples
+        with:
+          libraries: 'Blues Wireless Notecard'
+          sketch: ${{ matrix.example-sketch }}
+          fully-qualified-board-name: ${{ matrix.fully-qualified-board-name }}
