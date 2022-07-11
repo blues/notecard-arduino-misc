@@ -3,7 +3,6 @@ SKETCH="$1"
 BOARD="$2"
 LIBS="$3"
 
-cp -r . /home/blues/Arduino/libraries/Blues_Wireless_Notecard
 HOME=/home/blues
 IFS=';'
 read -ra libraries <<< "$LIBS"

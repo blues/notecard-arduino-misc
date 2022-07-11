@@ -9,15 +9,18 @@ on:
 jobs:
   validate_examples: # job id
     runs-on: ubuntu-latest
+    concurrency: ci-${{ github.ref }}
     continue-on-error: true
     strategy:
+      max-parallel: 1
       matrix:
         example-sketch:
           - ./energy/energy.ino
         fully-qualified-board-name:
+          - arduino:mbed_nano:nano33ble
           - STMicroelectronics:stm32:BluesW:pnum=SWAN_R5
-          # - esp32:esp32:featheresp32
-          # - adafruit:samd:adafruit_feather_m4
+          - esp32:esp32:featheresp32
+          - adafruit:samd:adafruit_feather_m4
     steps:
       - name: Checkout Code
         id: checkout
