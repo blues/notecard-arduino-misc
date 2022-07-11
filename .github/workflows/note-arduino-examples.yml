@@ -17,7 +17,6 @@ jobs:
         example-sketch:
           - ./energy/energy.ino
         fully-qualified-board-name:
-          - arduino:mbed_nano:nano33ble
           - STMicroelectronics:stm32:BluesW:pnum=SWAN_R5
           - esp32:esp32:featheresp32
           - adafruit:samd:adafruit_feather_m4
