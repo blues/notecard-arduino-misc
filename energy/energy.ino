@@ -11,6 +11,7 @@
 
 #ifndef PRODUCT_UID
 #define PRODUCT_UID ""
+#pragma message "PRODUCT_UID is not defined. Please ensure your Notecard has a product set before running this example. More details at https://dev.blues.io/tools-and-sdks/samples/product-uid"
 #endif
 
 // This is the unique Product Identifier for your device.
