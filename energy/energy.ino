@@ -9,13 +9,18 @@
 #define serialTrace Serial
 // #define serialNotecard Serial1
 
+#ifndef PRODUCT_UID
+#define PRODUCT_UID ""
+#pragma message "PRODUCT_UID is not defined. Please ensure your Notecard has a product set before running this example. More details at https://dev.blues.io/tools-and-sdks/samples/product-uid"
+#endif
+
 // This is the unique Product Identifier for your device.
-#define myProductID "com.blues.test"
+#define myProductID PRODUCT_UID
 Notecard notecard;
 
 // Control parameters
-#define	NUM_SECONDS_BETWEEN_CYCLES		15
-#define	NUM_RETRIES_FOR_A_GIVEN_PAYLOAD 3
+#define NUM_SECONDS_BETWEEN_CYCLES 15
+#define NUM_RETRIES_FOR_A_GIVEN_PAYLOAD 3
 
 // Vars that control cycle behavior
 uint32_t payloadLen = 0;
@@ -27,32 +32,35 @@ uint32_t lastSyncDurationSecs = 0;
 void setup()
 {
 
-    // During development, set up for debug output from the Notecard.  Note that the initial delay is
-    // required by some Arduino cards before debug UART output can be successfully displayed in the
-    // Arduino IDE, including the Adafruit Feather nRF52840 Express.
+	// During development, set up for debug output from the Notecard.  Note that the initial delay is
+	// required by some Arduino cards before debug UART output can be successfully displayed in the
+	// Arduino IDE, including the Adafruit Feather nRF52840 Express.
 #ifdef serialTrace
-    delay(2500);
-    serialTrace.begin(115200);
-    notecard.setDebugOutputStream(serialTrace);
+	delay(2500);
+	serialTrace.begin(115200);
+	notecard.setDebugOutputStream(serialTrace);
 #endif
 
-    // Initialize the physical I/O channel to the Notecard
+	// Initialize the physical I/O channel to the Notecard
 #ifdef serialNotecard
-    notecard.begin(serialNotecard, 9600);
+	notecard.begin(serialNotecard, 9600);
 #else
-    Wire.begin();
-    notecard.begin();
+	Wire.begin();
+	notecard.begin();
 #endif
 
-    // Set the product UID and set the sync mode to be "minimum"
-    J *req = notecard.newRequest("hub.set");
-    JAddStringToObject(req, "product", myProductID);
-    JAddStringToObject(req, "mode", "minimum");
-    notecard.sendRequest(req);
-
+	// Set the product UID if defined and set the sync mode to be "minimum"
+	J *req = notecard.newRequest("hub.set");
+	if (myProductID[0])
+	{
+		JAddStringToObject(req, "product", myProductID);
+	}
+	JAddStringToObject(req, "mode", "minimum");
+	notecard.sendRequest(req);
 	// Perform at least three sync cycles just to ensure that we've gotten past our
 	// initial connectivity and secure authentication, which takes more bandwidth and time
-	for (int i=5; i>0 && (lastSyncDurationSecs == 0 || lastSyncDurationSecs > 16); --i) {
+	for (int i = 5; i > 0 && (lastSyncDurationSecs == 0 || lastSyncDurationSecs > 16); --i)
+	{
 		serialTrace.printf("\n\n*** syncing so that notecard is in a stable state (%d)\n", i);
 		payloadLen = 0;
 		cycleDelaySecs = 0;
@@ -65,7 +73,6 @@ void setup()
 	cycleRetriesLeft = NUM_RETRIES_FOR_A_GIVEN_PAYLOAD;
 	serialTrace.printf("\n\n*** beginning test (YOU HAVE 10 SECONDS TO START RECORDING)\n\n\n");
 	delay(10000);
-
 }
 
 // The Arduino main loop does a single cycle, and then delays for viewing results on the scope
@@ -75,12 +82,14 @@ void loop()
 	// Begin a cycle
 	serialTrace.printf("*** beginning cycle with %d-byte payload\n", payloadLen);
 
-    // Enqueue the measurement to the Notecard for transmission to the Notehub.  These measurements
-    // will be staged in the Notecard's flash memory until it's time to transmit them to the service.
-	if (payloadLen > 0) {
+	// Enqueue the measurement to the Notecard for transmission to the Notehub.  These measurements
+	// will be staged in the Notecard's flash memory until it's time to transmit them to the service.
+	if (payloadLen > 0)
+	{
 		serialTrace.printf("*** adding note\n");
-	    J *req = notecard.newRequest("note.add");
-	    if (req != NULL) {
+		J *req = notecard.newRequest("note.add");
+		if (req != NULL)
+		{
 
 			// Notefile
 			JAddStringToObject(req, "file", "test_outbound.qo");
@@ -89,16 +98,18 @@ void loop()
 			JAddBoolToObject(req, "allow", true);
 
 			// Generate an uncompressable payload of the desired length
-			uint8_t *payload = (uint8_t *) malloc(payloadLen);
-			if (payload != NULL) {
-				for (uint32_t i=0; i<payloadLen; i++) {
-					payload[i] = i == 0 ? 1 : (payload[i-1] * i) + i;
+			uint8_t *payload = (uint8_t *)malloc(payloadLen);
+			if (payload != NULL)
+			{
+				for (uint32_t i = 0; i < payloadLen; i++)
+				{
+					payload[i] = i == 0 ? 1 : (payload[i - 1] * i) + i;
 				}
 				JAddBinaryToObject(req, "payload", payload, payloadLen);
 				free(payload);
 			}
-	        notecard.sendRequest(req);
-	    }
+			notecard.sendRequest(req);
+		}
 	}
 
 	// Initiate a sync
@@ -109,24 +120,28 @@ void loop()
 	bool syncError = false;
 	int syncDurationSecs = 0;
 	bool syncInProgress = true;
-	while (syncInProgress) {
+	while (syncInProgress)
+	{
 		delay(3000);
-	    J *rsp = notecard.requestAndResponse(notecard.newRequest("hub.sync.status"));
-		if (rsp == NULL) {
+		J *rsp = notecard.requestAndResponse(notecard.newRequest("hub.sync.status"));
+		if (rsp == NULL)
+		{
 			break;
 		}
 		syncError = JGetBool(rsp, "alert");
 		syncDurationSecs = JGetNumber(rsp, "duration");
 		syncInProgress = JGetNumber(rsp, "requested") > 0;
-        notecard.deleteResponse(rsp);
+		notecard.deleteResponse(rsp);
 	}
 	lastSyncDurationSecs = syncDurationSecs;
 	serialTrace.printf("*** sync is completed %s\n", syncError ? "(CONNECTIVITY ERROR)" : "");
 
 	// Process any inbound messages
-	for (;;) {
-	    J *req = notecard.newRequest("note.get");
-	    if (req != NULL) {
+	for (;;)
+	{
+		J *req = notecard.newRequest("note.get");
+		if (req != NULL)
+		{
 
 			// Notefile
 			JAddStringToObject(req, "file", "test_inbound.qi");
@@ -135,12 +150,14 @@ void loop()
 			JAddBoolToObject(req, "delete", true);
 
 			// Dequeue the next inbound note
-		    J *rsp = notecard.requestAndResponse(req);
-			if (rsp != NULL) {
+			J *rsp = notecard.requestAndResponse(req);
+			if (rsp != NULL)
+			{
 
 				// Done?
-				if (!JIsNullString(rsp, "err")) {
-			        notecard.deleteResponse(rsp);
+				if (!JIsNullString(rsp, "err"))
+				{
+					notecard.deleteResponse(rsp);
 					break;
 				}
 
@@ -148,31 +165,35 @@ void loop()
 				serialTrace.printf("*** processing inbound message\n");
 
 				// Done with processing
-		        notecard.deleteResponse(rsp);
-
+				notecard.deleteResponse(rsp);
 			}
 		}
 	}
 
 	// Bump the payload to the next payload size
-	if (cycleRetriesLeft > 0) {
+	if (cycleRetriesLeft > 0)
+	{
 		cycleRetriesLeft--;
-	} else {
+	}
+	else
+	{
 		payloadLen = payloadLen * 10;
-		if (payloadLen == 0) {
+		if (payloadLen == 0)
+		{
 			payloadLen = 1;
 		}
-		if (payloadLen > 10000) {
+		if (payloadLen > 10000)
+		{
 			payloadLen = 0;
 		}
 		cycleRetriesLeft = NUM_RETRIES_FOR_A_GIVEN_PAYLOAD;
 	}
 
 	// Delay between cycles as desired
-	if (cycleDelaySecs > 0) {
+	if (cycleDelaySecs > 0)
+	{
 		serialTrace.printf("*** done with cycle (delaying %d seconds before uploading %d-byte payload)\n\n",
 						   cycleDelaySecs, payloadLen);
 		delay(cycleDelaySecs * 1000);
 	}
-
 }
